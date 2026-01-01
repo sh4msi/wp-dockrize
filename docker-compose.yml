@@ -32,7 +32,7 @@ services:
     volumes:
       - wordpress_data:/var/www/html
     networks:
-      - wp_network
+      - dokploy-network
     depends_on:
       - permission-fixer
 
@@ -50,10 +50,13 @@ services:
       # Limited access mode - uncomment below and comment out above for restricted access
       # - wordpress_data/wp-content:/home/${SFTP_USER}/wp-content:rw
       # - wordpress_data/wp-config.php:/home/${SFTP_USER}/wp-config.php:rw
+      # Persist SSH host keys to prevent regeneration
+      - sftp_ssh_keys:/etc/ssh
     networks:
-      - wp_network
+      - dokploy-network
     depends_on:
       - wordpress
+
 
   permission-fixer:
     image: busybox:latest
@@ -62,8 +65,8 @@ services:
       sh -c "
         echo 'Fixing permissions for WordPress files...';
         chown -R 33:33 /var/www/html;
-        find /var/www/html -type d -exec chmod 755 {} \;;
-        find /var/www/html -type f -exec chmod 644 {} \;;
+        find /var/www/html -type d -exec chmod 755 {} \;
+        find /var/www/html -type f -exec chmod 644 {} \;
         if [ -f /var/www/html/wp-config.php ]; then
           chmod 600 /var/www/html/wp-config.php;
           echo 'wp-config.php permissions set to 600';
@@ -73,12 +76,14 @@ services:
     volumes:
       - wordpress_data:/var/www/html
     networks:
-      - wp_network
+      - dokploy-network
 
 networks:
-  wp_network:
-    driver: bridge
+  dokploy-network:
+    external: true
 
 volumes:
   wordpress_data:
+    driver: local
+  sftp_ssh_keys:
     driver: local
