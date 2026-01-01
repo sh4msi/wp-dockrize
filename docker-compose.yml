@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  wordpress:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wordpress
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    environment:
+      # External Database Configuration
+      WORDPRESS_DB_HOST: ${WORDPRESS_DB_HOST}
+      WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME}
+      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER}
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+
+      # WordPress Configuration
+      WORDPRESS_TABLE_PREFIX: ${WORDPRESS_TABLE_PREFIX:-wp_}
+      WORDPRESS_DEBUG: ${WORDPRESS_DEBUG:-0}
+
+      # WordPress Security Keys (generate at https://api.wordpress.org/secret-key/1.1/salt/)
+      WORDPRESS_AUTH_KEY: ${WORDPRESS_AUTH_KEY}
+      WORDPRESS_SECURE_AUTH_KEY: ${WORDPRESS_SECURE_AUTH_KEY}
+      WORDPRESS_LOGGED_IN_KEY: ${WORDPRESS_LOGGED_IN_KEY}
+      WORDPRESS_NONCE_KEY: ${WORDPRESS_NONCE_KEY}
+      WORDPRESS_AUTH_SALT: ${WORDPRESS_AUTH_SALT}
+      WORDPRESS_SECURE_AUTH_SALT: ${WORDPRESS_SECURE_AUTH_SALT}
+      WORDPRESS_LOGGED_IN_SALT: ${WORDPRESS_LOGGED_IN_SALT}
+      WORDPRESS_NONCE_SALT: ${WORDPRESS_NONCE_SALT}
+    volumes:
+      - wordpress_data:/var/www/html
+    networks:
+      - wp_network
+    depends_on:
+      - permission-fixer
+
+  sftp:
+    image: atmoz/sftp:latest
+    container_name: wordpress_sftp
+    restart: unless-stopped
+    ports:
+      - "${SFTP_PORT:-2026}:22"
+    environment:
+      SFTP_USERS: ${SFTP_USER}:${SFTP_PASSWORD}:${SFTP_UID:-33}:${SFTP_GID:-33}
+    volumes:
+      # Full access mode - all WordPress files
+      - wordpress_data:/home/${SFTP_USER}/wordpress:rw
+      # Limited access mode - uncomment below and comment out above for restricted access
+      # - wordpress_data/wp-content:/home/${SFTP_USER}/wp-content:rw
+      # - wordpress_data/wp-config.php:/home/${SFTP_USER}/wp-config.php:rw
+    networks:
+      - wp_network
+    depends_on:
+      - wordpress
+
+  permission-fixer:
+    image: busybox:latest
+    container_name: wordpress_permission_fixer
+    command: >
+      sh -c "
+        echo 'Fixing permissions for WordPress files...';
+        chown -R 33:33 /var/www/html;
+        find /var/www/html -type d -exec chmod 755 {} \;;
+        find /var/www/html -type f -exec chmod 644 {} \;;
+        if [ -f /var/www/html/wp-config.php ]; then
+          chmod 600 /var/www/html/wp-config.php;
+          echo 'wp-config.php permissions set to 600';
+        fi;
+        echo 'Permissions fixed successfully!';
+      "
+    volumes:
+      - wordpress_data:/var/www/html
+    networks:
+      - wp_network
+
+networks:
+  wp_network:
+    driver: bridge
+
+volumes:
+  wordpress_data:
+    driver: local

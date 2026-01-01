@@ -1,0 +1,13 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+*.md
+!README.md
+.vscode
+.idea
+node_modules
+.DS_Store
+Thumbs.db
+*.log
