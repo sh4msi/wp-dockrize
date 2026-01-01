@@ -9,14 +9,13 @@ RUN apt-get update && apt-get install -y \
     zip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install IonCube Loader for PHP 8.2
-# Auto-detect PHP version for IonCube
+# Install IonCube Loader with auto-detect PHP version
 RUN cd /tmp \
     && PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;") \
-    && wget https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz \
+    && wget -q https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz \
     && tar xzf ioncube_loaders_lin_x86-64.tar.gz \
-    && PHP_EXT_DIR=$(php -i | grep extension_dir | awk '{print $3}') \
-    && cp ioncube/ioncube_loader_lin_${PHP_VERSION}.so ${PHP_EXT_DIR} \
+    && PHP_EXT_DIR=$(php-config --extension-dir) \
+    && cp ioncube/ioncube_loader_lin_${PHP_VERSION}.so ${PHP_EXT_DIR}/ \
     && echo "zend_extension=ioncube_loader_lin_${PHP_VERSION}.so" > /usr/local/etc/php/conf.d/00-ioncube.ini \
     && rm -rf /tmp/ioncube*
 
@@ -28,7 +27,7 @@ RUN { \
     echo 'max_execution_time = 300'; \
     echo 'max_input_vars = 3000'; \
     echo 'max_input_time = 300'; \
-} > /usr/local/etc/php/conf.d/wordpress.ini
+    } > /usr/local/etc/php/conf.d/wordpress.ini
 
 # Set proper permissions
 RUN chown -R www-data:www-data /var/www/html
