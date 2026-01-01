@@ -50,8 +50,6 @@ services:
       # Limited access mode - uncomment below and comment out above for restricted access
       # - wordpress_data/wp-content:/home/${SFTP_USER}/wp-content:rw
       # - wordpress_data/wp-config.php:/home/${SFTP_USER}/wp-config.php:rw
-      # Persist SSH host keys to prevent regeneration
-      - sftp_ssh_keys:/etc/ssh
     networks:
       - dokploy-network
     depends_on:
@@ -84,6 +82,4 @@ networks:
 
 volumes:
   wordpress_data:
-    driver: local
-  sftp_ssh_keys:
     driver: local
